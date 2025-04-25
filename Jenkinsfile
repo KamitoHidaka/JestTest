@@ -1,39 +1,44 @@
 pipeline {
     agent any
 
+    tools {
+        nodejs "NodeJS_20"
+    }
+
     environment {
-        COVERAGE_DIR = 'coverage'
+        CI = 'true'
     }
 
     stages {
         stage('Instalar dependencias') {
             steps {
-                sh 'npm install'
+                bat 'npm ci'
             }
         }
 
         stage('Ejecutar tests') {
             steps {
-                sh 'npm run test -- --coverage'
+                bat 'npx jest --coverage'
             }
         }
 
         stage('Publicar cobertura') {
             steps {
-                publishHTML([
-                    allowMissing: true, // Cambiar a false si quieres que falle si no hay cobertura
-                    alwaysLinkToLastBuild: true,
-                    keepAll: true,
-                    reportDir: "${COVERAGE_DIR}/lcov-report",
+                junit 'coverage/junit.xml'
+                publishHTML(target: [
+                    reportName : 'Cobertura de pruebas',
+                    reportDir  : 'coverage/lcov-report',
                     reportFiles: 'index.html',
-                    reportName: 'Coverage Report'
+                    keepAll    : true,
+                    alwaysLinkToLastBuild: true,
+                    allowMissing: false
                 ])
             }
         }
 
         stage('Guardar cobertura como artefacto') {
             steps {
-                archiveArtifacts artifacts: "${COVERAGE_DIR}/**", allowEmptyArchive: true
+                archiveArtifacts artifacts: 'coverage/**', fingerprint: true
             }
         }
     }
